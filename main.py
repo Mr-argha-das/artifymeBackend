@@ -135,16 +135,21 @@ async def userLoginbyGoogle(userjson: UserLoginId):
         
         
 @app.post("/api/v1/tags-create")
-async def tagsUserCreate(tagsModel: TagsCreateModel):
+async def tagsUserCreate(tagsModel: TagsCreateModel, file: UploadFile = File(...)):
     findtags = TagsModel.objects(tagsName = tagsModel.tagsName).first()
     if(findtags):
+        
         return {
             "message":"Tag Aleready",
             "data": None,
             "statu": False
         }  
     else:
-        tags = TagsModel(tagsName = tagsModel.tagsName)
+        file_content = await file.read()
+    
+    # Call the upload function with the random filename and the original file extension
+        uploaded_path = upload_image_to_space(file_content, file.filename)
+        tags = TagsModel(tagsName = tagsModel.tagsName, imagePath = uploaded_path )
         tags.save()
         tojson = tags.to_json()
         fromjson = json.load(tojson)
