@@ -7,6 +7,7 @@ from wallpapermodel import WallpaperModel, WallpaperModelAdd, WallPaperModelupda
 import io
 import os
 import uuid
+import random
 from boto3 import client
 from typing import List
 import json
@@ -66,7 +67,7 @@ async def userCreate(userJson: UserCreate):
             "data":None,
             "status":False
         }
-    user = UserModel.objects(name = userJson.name, email=userJson.email, gender=userJson.gender, password=userJson.password)
+    user = UserModel(name = userJson.name, email=userJson.email, gender=userJson.gender, password=userJson.password)
     user.save()
     tojson = user.to_json()
     fromjson = json.loads(tojson)
@@ -85,7 +86,7 @@ async def userCreateByid(data: UserCreateById):
             "data":None,
             "status":False
         }
-    user = UserModel.objects(en_login_id = data.en_login_id ,name = data.name, email=data.email, gender=data.gender, password=data.password)
+    user = UserModel(en_login_id = data.en_login_id ,name = data.name, email=data.email, gender=data.gender, password=data.password)
     user.save()
     tojson = user.to_json()
     fromjson = json.loads(tojson)
@@ -134,9 +135,9 @@ async def userLoginbyGoogle(userjson: UserLoginId):
         }      
         
         
-@app.post("/api/v1/tags-create")
-async def tagsUserCreate(tagsModel: TagsCreateModel, file: UploadFile = File(...)):
-    findtags = TagsModel.objects(tagsName = tagsModel.tagsName).first()
+@app.put("/api/v1/tags-create/{tagName}")
+async def tagsUserCreate(tagName: str, file: UploadFile = File(...)):
+    findtags = TagsModel.objects(tagsName = tagName).first()
     if(findtags):
         
         return {
@@ -146,13 +147,11 @@ async def tagsUserCreate(tagsModel: TagsCreateModel, file: UploadFile = File(...
         }  
     else:
         file_content = await file.read()
-    
-    # Call the upload function with the random filename and the original file extension
         uploaded_path = upload_image_to_space(file_content, file.filename)
-        tags = TagsModel(tagsName = tagsModel.tagsName, imagePath = uploaded_path )
+        tags = TagsModel(tagsName = tagName, imagePath = uploaded_path )
         tags.save()
         tojson = tags.to_json()
-        fromjson = json.load(tojson)
+        fromjson = json.loads(tojson)
         return {
             "message":"Tags creted",
             "data": fromjson,
@@ -168,6 +167,23 @@ async def tagsGet():
         "data": fromjson
     }
 
+@app.get("/api/v1/tags/search/{query}")
+async def search(query: str):
+    # Query TagsModel collection
+    results = TagsModel.objects(tagsName__icontains=query).limit(10)
+    if not results:
+        raise {
+            "message":"Tags not found",
+            "data":None,
+            "status":True
+        }
+    tojson = results.to_json()
+    fromjson = json.loads(tojson)
+    return {
+            "message":"Tags not found",
+            "data":fromjson,
+            "status":True
+        }
 
 @app.get("/api/v1/get-banners")
 async def bannerList():
@@ -234,7 +250,27 @@ async def wallpapersByTagsId(tagid: str):
         "data":None,
         "status":False
     }
-        
+
+@app.get("/api/v1/wallpaper-by-tags/random/{tag_id}")
+async def pick_random_row(tag_id: str):
+    # Query WallpaperModel collection
+    results = WallpaperModel.objects(tagId=tag_id)
+    if not results:
+        raise {
+            "message":"Wallpaer not found on this tag",
+            "data":None,
+            "status":False
+        }
+    
+    # Pick a random result
+    random_result = random.choice(results)
+    tojson = json.loads(random_result)
+    fromjson = json.loads(tojson)
+    return {
+            "message":"Wallpaer not found on this tag",
+            "data":fromjson,
+            "status":False
+        }
     
 @app.get("/api/v1/get-all-wallpapers")
 async def allWallpapers():
@@ -307,9 +343,6 @@ async def perticularWallpaperData(wallpaperid: str):
             "status":False
         }
         
-
-
-
 
 
 
