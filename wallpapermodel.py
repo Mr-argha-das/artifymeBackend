@@ -6,6 +6,7 @@ class WallpaperModel(Document):
     imagePath = StringField(required=True)
     downloadsCount = IntField(default= 0, required=False)
     like = ListField(required=False)
+    title = StringField(required=True)
 
 class WallpaperModelAdd(BaseModel):
     tagId: str

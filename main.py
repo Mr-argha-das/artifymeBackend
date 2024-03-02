@@ -346,20 +346,37 @@ async def perticularWallpaperData(wallpaperid: str):
 
 
 
+@app.delete("/api/v1/delete-tag/{id}")
+async def deleteTag(id: str):
+    TagsModel.objects(id=ObjectId(id)).delete()
+    return {
+        'message':"tag Deleted",
+        "status":True
+    }
 
+@app.get("/api/v1/search-wallpaper/{keyword}")
+async def search_wallpaper(keyword: str = None):
+    data = WallpaperModel.objects(title__icontains=keyword)
+    print(data)
+        
 
+    if not data:
+        return {
+            "message": "Wallpapers not found",
+            "data": None,
+            "status": False
+        }
+    else:
+        # Convert queryset to a list and shuffle it
+        data_list = list(data)
+        random.shuffle(data_list)
 
+        # Convert shuffled list to JSON, converting ObjectId to string
+        data_json = json.loads(json.dumps([obj.to_mongo().to_dict() for obj in data_list], default=str))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return {
+            "message": "Here are the shuffled wallpapers",
+            "data": data_json,
+            "status": True
+        }
+            

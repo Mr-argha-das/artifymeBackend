@@ -1,0 +1,10 @@
+requests
+bs4
+tqdm
+pydotmap
+opencv-python
+numpy
+fastapi
+mongoengine
+bson
+boto3
