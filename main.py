@@ -359,38 +359,42 @@ async def deleteTag(id: str):
 
 @app.get("/api/v1/search-wallpaper/{keyword}/{page}/{page_size}")
 async def search_wallpaper(keyword: str = None, page: int = 1, page_size: int = 10):
-    # Calculate skip value for pagination
-    skip = (page - 1) * page_size
+    # Query all data matching the keyword
+    all_data = WallpaperModel.objects(title__icontains=keyword)
 
-    # Query data with pagination
-    data = WallpaperModel.objects(title__icontains=keyword).skip(skip).limit(page_size)
-
-    if not data:
+    if not all_data:
         return {
             "message": "Wallpapers not found",
             "data": None,
             "status": False
         }
     else:
-        # Convert queryset to a list and shuffle it
-        data_list = list(data)
+        # Convert queryset to a list
+        data_list = list(all_data)
+
+        # Shuffle the list
         random.shuffle(data_list)
 
-        # Convert shuffled list to JSON, converting ObjectId to string
-        data_json = json.loads(json.dumps([obj.to_mongo().to_dict() for obj in data_list], default=str))
-
-        # Get total count of wallpapers matching the keyword
-        total_count = WallpaperModel.objects(title__icontains=keyword).count()
+        # Calculate total count of wallpapers matching the keyword
+        total_count = len(data_list)
 
         # Calculate total pages
         total_pages = ceil(total_count / page_size)
 
+        # Calculate skip value for pagination
+        skip = (page - 1) * page_size
+
+        # Get the data for the current page
+        data_for_page = data_list[skip: skip + page_size]
+
+        # Convert the data to JSON, converting ObjectId to string
+        data_json = json.loads(json.dumps([obj.to_mongo().to_dict() for obj in data_for_page], default=str))
+
         return {
-            "message": "Here are the shuffled wallpapers",
+            "message": "Here are the shuffled wallpapers with pagination",
             "data": data_json,
             "status": True,
             "page": page,
             "total_pages": total_pages,
             "total_count": total_count
         }
-            
