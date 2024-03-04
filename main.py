@@ -12,6 +12,7 @@ from boto3 import client
 from typing import List
 import json
 from bson import ObjectId
+from math import ceil
 
 
 app = FastAPI()
@@ -236,12 +237,14 @@ async def uploadWallpapers(tagid: str, files: List[UploadFile] = File(...)):
 @app.get("/api/v1/get-wallpapers/tagsid/{tagid}")
 async def wallpapersByTagsId(tagid: str):
     wallpaperList = WallpaperModel.objects(tagId=tagid)
-    tojson = wallpaperList.to_json()
-    fromjson = json.loads(tojson)
+    data_list = list(wallpaperList)
+    random.shuffle(data_list)
+    data_json = json.loads(json.dumps([obj.to_mongo().to_dict() for obj in data_list], default=str))
+    
     if(wallpaperList):
         return {
         "message": "Wallpapers by Tag id",
-        "data":fromjson,
+        "data":data_json,
         "status":True
         }
     else:
@@ -354,11 +357,13 @@ async def deleteTag(id: str):
         "status":True
     }
 
-@app.get("/api/v1/search-wallpaper/{keyword}")
-async def search_wallpaper(keyword: str = None):
-    data = WallpaperModel.objects(title__icontains=keyword)
-    print(data)
-        
+@app.get("/api/v1/search-wallpaper/{keyword}/{page}/{page_size}")
+async def search_wallpaper(keyword: str = None, page: int = 1, page_size: int = 10):
+    # Calculate skip value for pagination
+    skip = (page - 1) * page_size
+
+    # Query data with pagination
+    data = WallpaperModel.objects(title__icontains=keyword).skip(skip).limit(page_size)
 
     if not data:
         return {
@@ -374,9 +379,18 @@ async def search_wallpaper(keyword: str = None):
         # Convert shuffled list to JSON, converting ObjectId to string
         data_json = json.loads(json.dumps([obj.to_mongo().to_dict() for obj in data_list], default=str))
 
+        # Get total count of wallpapers matching the keyword
+        total_count = WallpaperModel.objects(title__icontains=keyword).count()
+
+        # Calculate total pages
+        total_pages = ceil(total_count / page_size)
+
         return {
             "message": "Here are the shuffled wallpapers",
             "data": data_json,
-            "status": True
+            "status": True,
+            "page": page,
+            "total_pages": total_pages,
+            "total_count": total_count
         }
             

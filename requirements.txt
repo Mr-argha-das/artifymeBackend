@@ -8,3 +8,4 @@ fastapi
 mongoengine
 bson
 boto3
+python-multipart
